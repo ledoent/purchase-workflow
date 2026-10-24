@@ -13,28 +13,60 @@ class TestBaseSubstate(TransactionCase):
         cls.substate_test_purchase = cls.env["purchase.order"]
         cls.substate_test_purchase_line = cls.env["purchase.order.line"]
 
-        cls.substate_under_nego = cls.env.ref(
-            "purchase_substate.base_substate_under_nego"
+        cls.base_substate = cls.env["base.substate"]
+        cls.target_draft = cls.env.ref("purchase_substate.target_state_value_draft")
+        cls.target_purchase = cls.env.ref(
+            "purchase_substate.target_state_value_purchase"
         )
-        cls.substate_won = cls.env.ref("purchase_substate.base_substate_won")
-        cls.substate_wait_docs = cls.env.ref(
-            "purchase_substate.base_substate_wait_docs"
+        # Build the substates here rather than env.ref'ing the demo records:
+        # Odoo stopped loading demo data by default in 19.0, so the refs this
+        # test used raised "External ID not found". Negative sequences keep
+        # these ahead of the demo substates when demo IS loaded, so the
+        # defaults the assertions rely on stay deterministic either way.
+        cls.substate_under_nego = cls.base_substate.create(
+            {
+                "name": "In negotiation",
+                "sequence": -20,
+                "target_state_value_id": cls.target_draft.id,
+            }
         )
-        cls.substate_valid_docs = cls.env.ref(
-            "purchase_substate.base_substate_valid_docs"
+        cls.substate_won = cls.base_substate.create(
+            {
+                "name": "Won",
+                "sequence": -10,
+                "target_state_value_id": cls.target_draft.id,
+            }
         )
-        cls.substate_in_receipt = cls.env.ref(
-            "purchase_substate.base_substate_in_receipt"
+        cls.substate_wait_docs = cls.base_substate.create(
+            {
+                "name": "Waiting for legal documents",
+                "sequence": -5,
+                "target_state_value_id": cls.target_draft.id,
+            }
         )
+        cls.substate_valid_docs = cls.base_substate.create(
+            {
+                "name": "To validate legal documents",
+                "sequence": -20,
+                "target_state_value_id": cls.target_purchase.id,
+            }
+        )
+        cls.substate_in_receipt = cls.base_substate.create(
+            {
+                "name": "In receipt",
+                "sequence": -10,
+                "target_state_value_id": cls.target_purchase.id,
+            }
+        )
+        cls.partner = cls.env["res.partner"].create({"name": "Test vendor"})
 
         cls.product = cls.env["product.product"].create({"name": "Test"})
 
     def test_purchase_order_substate(self):
-        partner = self.env.ref("base.res_partner_1")
         po_test1 = self.substate_test_purchase.create(
             {
                 "name": "Test base substate to basic purchase",
-                "partner_id": partner.id,
+                "partner_id": self.partner.id,
                 "order_line": [
                     (
                         0,
@@ -42,7 +74,7 @@ class TestBaseSubstate(TransactionCase):
                         {
                             "name": "line test",
                             "product_id": self.product.id,
-                            "product_uom": self.product.uom_po_id.id,
+                            "uom_id": self.product.uom_id.id,
                             "price_unit": 120.0,
                             "product_qty": 1.5,
                             "date_planned": fields.Date.today(),

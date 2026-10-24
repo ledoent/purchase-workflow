@@ -2,6 +2,8 @@
 # Copyright 2020 Ecosoft (<http://ecosoft.co.th>)
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
+from typing import ClassVar
+
 from odoo import fields, models
 
 
@@ -15,6 +17,6 @@ class BaseSubstateType(models.Model):
 
 
 class PurchaseOrder(models.Model):
-    _inherit = ["purchase.order", "base.substate.mixin"]
+    _inherit: ClassVar[list[str]] = ["purchase.order", "base.substate.mixin"]
     _name = "purchase.order"
     _state_field = "state"
